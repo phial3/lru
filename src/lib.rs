@@ -119,10 +119,15 @@ impl<K: Hash + Eq + PartialEq, V> LruCache<K, V> {
                 unsafe {
                     head.as_mut().prev = Some(node);
                     node.as_mut().next = Some(head);
+                    node.as_mut().prev = None;
                 }
                 self.head = Some(node);
             }
             None => {
+                unsafe {
+                    node.as_mut().prev = None;
+                    node.as_mut().next = None;
+                }
                 self.head = Some(node);
                 self.tail = Some(node);
             }
@@ -134,8 +139,8 @@ impl<K, V> Drop for LruCache<K, V> {
     fn drop(&mut self) {
         while let Some(node) = self.head.take() {
             unsafe {
-                Box::from_raw(node.as_ptr());
                 self.head = node.as_ref().next;
+                drop(node.as_ptr());
             }
         }
     }
